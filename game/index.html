@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NEON BREACH — Make the best game</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%2305060a'/%3E%3Ctext x='8' y='12' font-size='11' text-anchor='middle' fill='%2300e5ff'%3EN%3C/text%3E%3C/svg%3E">
+<style>
+  html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #05060a; overflow: hidden; }
+  #wrap { position: fixed; inset: 0; }
+  #game { display: block; width: 100%; height: 100%; image-rendering: auto; cursor: crosshair; }
+  .hud { position: absolute; color: #d7f9ff; font-family: 'Segoe UI', Arial, sans-serif; user-select: none; pointer-events: none; }
+  #topbar { top: 10px; left: 50%; transform: translateX(-50%); text-align: center; }
+  #roundLabel { font-size: 13px; letter-spacing: 3px; color: #7df9ff; opacity: .85; }
+  #timer { font-size: 26px; font-weight: 700; color: #fff; text-shadow: 0 0 12px #00e5ff; }
+  #score { font-size: 15px; font-weight: 700; letter-spacing: 2px; margin-top: 2px; }
+  #score .cy { color: #00e5ff; } #score .or { color: #ff8c1a; }
+  #minimap { top: 12px; left: 12px; border: 1px solid rgba(0,229,255,.45); background: rgba(2,8,14,.72); border-radius: 4px; }
+  #killfeed { top: 78px; right: 12px; text-align: right; font-size: 13px; line-height: 1.7; }
+  #killfeed .kf { background: rgba(2,10,16,.65); padding: 2px 8px; border-radius: 3px; margin-bottom: 3px; display: inline-block; }
+  #killfeed .cy { color: #00e5ff; } #killfeed .or { color: #ff8c1a; } #killfeed .hs { color: #ffd23f; font-weight: 700; }
+  #bl { bottom: 14px; left: 16px; }
+  #hpBar { width: 220px; height: 12px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); border-radius: 3px; overflow: hidden; }
+  #hpFill { height: 100%; width: 100%; background: linear-gradient(90deg,#00e5ff,#7df9ff); }
+  #hpText { font-size: 22px; font-weight: 700; margin-top: 4px; text-shadow: 0 0 10px #00e5ff; }
+  #armorText { font-size: 13px; color: #9fd8ff; }
+  #br { bottom: 14px; right: 16px; text-align: right; }
+  #weaponName { font-size: 15px; letter-spacing: 2px; color: #7df9ff; }
+  #ammo { font-size: 28px; font-weight: 700; text-shadow: 0 0 12px #00e5ff; }
+  #ammo .res { font-size: 15px; color: #9fd8ff; }
+  #money { font-size: 16px; font-weight: 700; color: #7dff9e; margin-top: 2px; }
+  #msg { top: 22%; left: 50%; transform: translateX(-50%); text-align: center; font-size: 30px; font-weight: 800; letter-spacing: 4px; color: #fff; text-shadow: 0 0 18px #00e5ff, 0 2px 0 #000; }
+  #submsg { top: 29%; left: 50%; transform: translateX(-50%); text-align: center; font-size: 15px; color: #bfefff; letter-spacing: 1px; }
+  #plantBar { top: 38%; left: 50%; transform: translateX(-50%); width: 260px; display: none; }
+  #plantBar .lbl { text-align: center; font-size: 13px; letter-spacing: 2px; margin-bottom: 4px; color: #ffd23f; }
+  #plantFillWrap { height: 10px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,210,63,.7); border-radius: 3px; overflow: hidden; }
+  #plantFill { height: 100%; width: 0%; background: #ffd23f; }
+  .overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(3,6,12,.82); color: #d7f9ff; font-family: 'Segoe UI', Arial, sans-serif; text-align: center; z-index: 10; }
+  .overlay h1 { font-size: 64px; margin: 0; letter-spacing: 8px; color: #fff; text-shadow: 0 0 24px #ff2bd6, 0 0 60px #00e5ff; }
+  .overlay h1 .n { color: #00e5ff; } .overlay h1 .b { color: #ff2bd6; }
+  .overlay h2 { font-size: 15px; letter-spacing: 5px; color: #7df9ff; margin: 6px 0 18px; font-weight: 400; }
+  .overlay p { font-size: 14px; line-height: 1.8; color: #bfefff; margin: 4px 0; max-width: 560px; }
+  .overlay .keys { font-size: 13px; color: #9fd8ff; }
+  .overlay .keys b { color: #fff; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.3); border-radius: 3px; padding: 1px 6px; margin: 0 2px; }
+  .bigbtn { pointer-events: auto; cursor: pointer; margin-top: 22px; padding: 13px 42px; font-size: 18px; font-weight: 700; letter-spacing: 3px; color: #04121a; background: linear-gradient(90deg,#00e5ff,#ff2bd6); border: none; border-radius: 5px; box-shadow: 0 0 24px rgba(0,229,255,.55); }
+  .bigbtn:hover { filter: brightness(1.15); }
+  #buyMenu { display: none; }
+  .buyGrid { display: flex; gap: 12px; margin-top: 16px; }
+  .buyCard { pointer-events: auto; cursor: pointer; width: 150px; padding: 12px; background: rgba(0,229,255,.08); border: 1px solid rgba(0,229,255,.4); border-radius: 6px; }
+  .buyCard:hover { background: rgba(0,229,255,.2); }
+  .buyCard.owned { border-color: #7dff9e; background: rgba(125,255,158,.12); }
+  .buyCard h3 { margin: 0 0 6px; font-size: 15px; color: #fff; letter-spacing: 1px; }
+  .buyCard .price { color: #7dff9e; font-weight: 700; }
+  .buyCard .st { font-size: 12px; color: #9fd8ff; line-height: 1.6; }
+  #pauseMenu, #endMenu { display: none; }
+  #endStats { font-size: 15px; line-height: 2; color: #d7f9ff; }
+  #endStats b { color: #ffd23f; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="960" height="540"></canvas>
+  <div class="hud" id="topbar">
+    <div id="roundLabel">ROUND 1</div>
+    <div id="timer">1:40</div>
+    <div id="score"><span class="cy">VANGUARD 0</span> &nbsp;—&nbsp; <span class="or">0 CINDER</span></div>
+  </div>
+  <canvas class="hud" id="minimap" width="168" height="168"></canvas>
+  <div class="hud" id="killfeed"></div>
+  <div class="hud" id="bl">
+    <div id="hpBar"><div id="hpFill"></div></div>
+    <div id="hpText">100</div>
+    <div id="armorText">ARMOR 0</div>
+  </div>
+  <div class="hud" id="br">
+    <div id="weaponName">P9 SIDEARM</div>
+    <div id="ammo">12 <span class="res">/ ∞</span></div>
+    <div id="money">$800</div>
+  </div>
+  <div class="hud" id="msg"></div>
+  <div class="hud" id="submsg"></div>
+  <div class="hud" id="plantBar"><div class="lbl" id="plantLbl">PLANTING SPIKE…</div><div id="plantFillWrap"><div id="plantFill"></div></div></div>
+
+  <div class="overlay" id="startMenu">
+    <h1><span class="n">NEON</span> <span class="b">BREACH</span></h1>
+    <h2>RAYCAST STRIKE // SECTOR 7 // ox90_666</h2>
+    <p>Plant the spike at <b style="color:#7dff9e">REACTOR (A)</b> or <b style="color:#ffd23f">VAULT (B)</b>, or wipe the Cinder squad. First to 7 rounds takes the sector. Halftime swaps sides — overtime at 6–6.</p>
+    <p class="keys"><b>W A S D</b> move &nbsp; <b>Mouse</b> aim &nbsp; <b>Click</b> fire &nbsp; <b>Right-click</b> ADS &nbsp; <b>R</b> reload &nbsp; <b>G</b> grenade &nbsp; <b>E</b> plant / defuse &nbsp; <b>B</b> buy &nbsp; <b>Shift</b> sprint &nbsp; <b>C</b> crouch &nbsp; <b>P</b> pause</p>
+    <p class="keys">Click the game to capture your mouse. Press <b>Esc</b> to release it.</p>
+    <button class="bigbtn" id="startBtn">DEPLOY ▸</button>
+  </div>
+
+  <div class="overlay" id="buyMenu">
+    <h2 style="font-size:22px; letter-spacing:4px; color:#fff;">BUY PHASE — <span id="buyMoney" style="color:#7dff9e">$800</span></h2>
+    <p>Click a card to buy. Your team pushes the site together — pick a rifle if you can afford it.</p>
+    <div class="buyGrid" id="buyGrid"></div>
+    <button class="bigbtn" id="buyCloseBtn">READY ▸</button>
+  </div>
+
+  <div class="overlay" id="pauseMenu">
+    <h2 style="font-size:26px; letter-spacing:4px; color:#fff;">PAUSED</h2>
+    <p>Take a breath, agent. The neon waits for no one — except you, right now.</p>
+    <button class="bigbtn" id="resumeBtn">RESUME ▸</button>
+  </div>
+
+  <div class="overlay" id="endMenu">
+    <h1 id="endTitle" style="font-size:48px;">SECTOR SECURED</h1>
+    <h2 id="endSub">VANGUARD WINS 7 — 4</h2>
+    <div id="endStats"></div>
+    <button class="bigbtn" id="restartBtn">RUN IT BACK ▸</button>
+  </div>
+</div>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
